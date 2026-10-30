@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  fullName  String?   @map("full_name")
+  avatarUrl String?   @map("avatar_url")
+  plan      PlanTier  @default(STARTER)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  projects  Project[]
+
+  @@map("users")
+}
+
+model Project {
+  id               String        @id @default(uuid())
+  userId           String        @map("user_id")
+  title            String
+  originalVideoUrl String?       @map("original_video_url")
+  durationSeconds  Float?        @map("duration_seconds")
+  aspectRatio      String        @default("9:16") @map("aspect_ratio")
+  language         String        @default("en")
+  status           ProjectStatus @default(DRAFT)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  exports          Export[]
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcript       Transcript?
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model Transcript {
+  id        String   @id @default(uuid())
+  projectId String   @unique @map("project_id")
+  fullText  String   @map("full_text")
+  wordsJson Json     @map("words_json")
+  accuracy  Float?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("transcripts")
+}
+
+model Export {
+  id          String       @id @default(uuid())
+  projectId   String       @map("project_id")
+  stylePreset String       @default("bold") @map("style_preset")
+  resolution  String       @default("1080p")
+  downloadUrl String?      @map("download_url")
+  status      ExportStatus @default(PENDING)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("exports")
+}
+
+enum PlanTier {
+  STARTER
+  PRO
+  AGENCY
+}
+
+enum ProjectStatus {
+  DRAFT
+  UPLOADING
+  PROCESSING
+  TRANSCRIBING
+  READY
+  RENDERING
+  COMPLETED
+  FAILED
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
